@@ -73,7 +73,7 @@ app.post('/api/users/:_id/exercises', async (req, res) => {
     const _id = req.params._id;
     const foundUser = await UserModel.findById(_id);
     if (!foundUser) return res.status(404).json({ "message": `User with id ${_id} not found` });
-    
+
     const { description, duration, date } = req.body;
     const newExercise = {
       "userId": _id,
@@ -151,4 +151,3 @@ app.get('/api/users/:_id/logs', async (req, res) => {
 const listener = app.listen(process.env.PORT || 3000, () => {
   console.log('Your app is listening on port ' + listener.address().port);
 });
-
