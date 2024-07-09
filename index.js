@@ -71,7 +71,7 @@ app.post('/api/users', async (req, res) => {
 app.post('/api/users/:_id/exercises', async (req, res) => {
   try {
     const _id = req.params._id;
-    const foundUser = await UserModel.findOne({ "_id": _id });
+    const foundUser = await UserModel.findById(_id);
     if (!foundUser) return res.status(404).json({ "message": `User with id ${_id} not found` });
     
     const { description, duration, date } = req.body;
@@ -112,7 +112,7 @@ app.get('/api/users/:_id/logs', async (req, res) => {
     const _id = req.params._id;
     const { from, to, limit } = req.query;
 
-    const foundUser = await UserModel.findOne({ "_id": _id });
+    const foundUser = await UserModel.findById(_id);
     if (!foundUser) return res.status(404).json({ "message": `User with id ${_id} not found` });
 
     let exercises = await ExerciseModel.find({ "userId": _id });
@@ -126,7 +126,7 @@ app.get('/api/users/:_id/logs', async (req, res) => {
       exercises = exercises.filter(exercise => new Date(exercise.date) <= toDate);
     }
     if (limit) {
-      exercises = exercises.splice(0, Number(limit));
+      exercises = exercises.slice(0, Number(limit));
     }
     let count = exercises.length;
 
@@ -151,3 +151,4 @@ app.get('/api/users/:_id/logs', async (req, res) => {
 const listener = app.listen(process.env.PORT || 3000, () => {
   console.log('Your app is listening on port ' + listener.address().port);
 });
+
