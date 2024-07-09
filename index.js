@@ -3,13 +3,12 @@ const app = express()
 const cors = require('cors')
 require('dotenv').config()
 const mongoose = require('mongoose');
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+const bodyParser = require('body-parser');
+
 app.use(cors())
 app.use(express.static('public'))
-app.get('/', (req, res) => {
-  res.sendFile(__dirname + '/views/index.html')
-});
+app.use(bodyParser.urlencoded({ extended: false }));
+app.use(bodyParser.json());
 
 // MongoDB setup
 mongoose.connect(process.env.MONGO_URI, {
@@ -19,9 +18,13 @@ mongoose.connect(process.env.MONGO_URI, {
   .then(() => console.log('MongoDB connected'))
   .catch(err => console.error(err));
 
+app.get('/', (req, res) => {
+  res.sendFile(__dirname + '/views/index.html')
+});
+
+
+// Define Schema and Model for User
 const Schema = mongoose.Schema;
-
-
 const userSchema = new Schema({
   username: { type: String, required: true, unique: true },
 });
@@ -48,36 +51,33 @@ const exerciseSchema = new mongoose.Schema({
 })
 
 const ExerciseModel = mongoose.model('Exercise', exerciseSchema);
-
-// API endpoint for create new user 
+// API Endpoint: Create a new user
 app.post('/api/users', async (req, res) => {
 
-  const userData = req.body;
   try {
-    const user = await UserModel.create(userData)
+    const user = await UserModel.create(req.body)
     return res.status(201).json({
       "username": user.username,
       "_id": user._id
     })
   } catch (error) {
+    console.log(error.message);
     res.status(500).json({
-      "message": "Something went wrong!"
+      "message": "Server error"
     })
   }
+});
 
-})
-
-// API endpoint for add exercise to a user
+// API Endpoint: Add exercise to a user
 app.post('/api/users/:_id/exercises', async (req, res) => {
   try {
+    // const _id = req.body[":_id"];
     const _id = req.params._id;
-    const findUser = await UserModel.findOne({ "_id": _id })
-
-    if (!findUser) return res.status(404).json({
-      "message": "User not found"
+    const foundUser = await UserModel.findOne({
+      "_id": _id
     })
-
-    const { username } = findUser
+    if (!foundUser) return res.status(404).json({ "message": `User with id ${_id} not found` })
+    const { username } = foundUser
     const { description, duration, date } = req.body;
     const newExercise = {
       "userId": _id,
@@ -94,29 +94,25 @@ app.post('/api/users/:_id/exercises', async (req, res) => {
       "_id": _id,
     }
     res.status(201).json(exercise);
-
   } catch (error) {
     console.log(error.message);
     res.status(500).json({
       "message": "Server error"
     })
   }
+});
 
-})
-
-// API endpoint for get all users
+// API Endpoint: Get all users
 app.get('/api/users', async (req, res) => {
   try {
-    const users = await UserModel.find({})
-    res.status(200).json(user)
+    const users = await UserModel.find({}, '_id username');
+    res.json(users);
   } catch (error) {
-    res.status(400).json({
-      message: "User retrive faild"
-    })
+    res.status(400).json({ error: 'Could not retrieve users' });
   }
-})
+});
 
-// API endpoint for get a user exercise log
+// API Endpoint: Get user's exercise log
 app.get('/api/users/:_id/logs', async (req, res) => {
   try {
     const _id = req.params._id;
@@ -164,9 +160,7 @@ app.get('/api/users/:_id/logs', async (req, res) => {
       "message": "Server error"
     })
   }
-})
-
-
+});
 
 const listener = app.listen(process.env.PORT || 3000, () => {
   console.log('Your app is listening on port ' + listener.address().port)
